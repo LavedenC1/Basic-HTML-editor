@@ -1,0 +1,2 @@
+# Basic-HTML-editor
+A basic HTML editor than can run on basic computers, and offline.
