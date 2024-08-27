@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+</head>
+<body>
+<!DOCTYPE HTML>
+<html>
+<head>
+</head>
+<body style="height: 100vh; margin: 0;"> <!-- Set height of body to 100% of viewport height -->
+  <button onclick="encodeToData();">Run</button>
+  <button onclick="openNewTab();">Run In New Tab</button>
+  <button onclick="formatCode();">Format Code</button>
+  <button onclick="saveToLocalStorage();">Quick Save</button>
+  <button onclick="loadFromLocalStorage();">Quick Load</button>
+  <button onclick="slotToLocal();">Save to Slot</button>
+  <button onclick="slotFromLocal();">Load from Slot</button>
+  <button onclick="deleteSlot();">Delete Slot</button>
+  <button onclick="listSlots();">List slots</button>
+  <button onclick="copyDATA();">Copy data: URL</button>
+  <button onclick="downloadCode();">Download Code</button>
+  <button onclick="resetSlotList();">Reset Slot List</button>
+  <textarea id="code" spellcheck="false" style="width: 100vw; resize: vertical; height: 100px;" onkeydown="handleTab(event)"></textarea>
+  <iframe src="" id="frame" style="width: 100vw; height: 50%;"></iframe> <!-- Set height in percentage -->
+</body>
+<script>
+
+function updateIframeHeight() {
+  var textareaHeight = document.getElementById('code').scrollHeight;
+  var buttonHeight = document.getElementsByTagName('button')[0].offsetHeight; // Assuming all buttons have the same height
+  var buttonPadding = 10; // Adjust this value according to your button padding
+  var windowHeight = window.innerHeight;
+  var windowWidth = window.innerWidth;
+  var textareaPadding = 20; // Adjust this value according to your padding
+  var totalHeight = textareaHeight + buttonHeight + buttonPadding + textareaPadding;
+  var remainingHeight = windowHeight - totalHeight;
+  var minIframeHeight = 100; // Minimum height for the iframe
+  var iframeHeight = Math.max(remainingHeight, minIframeHeight);
+  document.getElementById('frame').style.height = iframeHeight + "px";
+  document.getElementById('frame').style.width = windowWidth + "px";
+}
+
+function openNewTab() {
+  var frameCode = document.getElementById("code").value;
+  var encodedCode = encodeURIComponent(frameCode);
+  var dataURL = "data:text/html;charset=utf-8," + encodedCode;
+  window.open(dataURL, "_blank")
+}
+
+function slotToLocal() {
+  var code = document.getElementById("code").value;
+  var slot = prompt("Enter the slot name (It will be your load code for advancedLoad)","my_project")
+  var new_slot = "my_htmledit_" + slot
+  localStorage.setItem(new_slot, code);
+  
+  // Update slot list
+  var slotList = JSON.parse(localStorage.getItem("slotList")) || [];
+  slotList.push(slot);
+  localStorage.setItem("slotList", JSON.stringify(slotList));
+  localStorage.setItem("prevSlot", slot);
+  alert("Saved into slot " + slot);
+}
+
+function slotFromLocal() {
+  var slot = prompt("Enter your slot name (What you put in for the save code)",localStorage.getItem("prevSlot"))
+  var new_slot = "my_htmledit_" + slot
+  var savedCode = localStorage.getItem(new_slot);
+  if (savedCode !== null) {
+    document.getElementById("code").value = savedCode;
+    alert("Loaded from slot " + slot)
+  } else {
+    alert("Slot not found");
+  }
+}
+
+function deleteSlot() {
+  var slot = prompt("Slot to delete","my_project")
+  var new_slot = "my_htmledit_" + slot
+  localStorage.removeItem(new_slot);
+  
+  // Update slot list
+  var slotList = JSON.parse(localStorage.getItem("slotList")) || [];
+  var index = slotList.indexOf(slot);
+  if (index !== -1) {
+    slotList.splice(index, 1);
+    localStorage.setItem("slotList", JSON.stringify(slotList));
+    alert("Deleted slot " + slot);
+  } else {
+    alert("Slot not found");
+  }
+}
+
+function listSlots(){
+  var slotList = JSON.parse(localStorage.getItem("slotList")) || [];
+  alert(slotList.join(", "));
+}
+
+function saveToLocalStorage() {
+  var code = document.getElementById("code").value;
+  localStorage.setItem("savedCode", code);
+  alert("Saved!")
+}
+
+function loadFromLocalStorage() {
+  var savedCode = localStorage.getItem("savedCode");
+  if (savedCode !== null) {
+    document.getElementById("code").value = savedCode;
+    alert("Loaded!")
+  }
+}
+
+function encodeToData() {
+  var frameCode = document.getElementById("code").value;
+  var encodedCode = encodeURIComponent(frameCode);
+  var dataURL = "data:text/html;charset=utf-8," + encodedCode;
+  document.getElementById('frame').src = dataURL;
+}
+
+function copyDATA() {
+  var frameCode = document.getElementById("code").value;
+  var encodedCode = encodeURIComponent(frameCode);
+  var dataURL = "data:text/html;charset=utf-8," + encodedCode;
+  navigator.clipboard.writeText(dataURL)
+}
+
+function resetSlotList(){
+  var ver = prompt("Are you sure? Type in 'yes' to accept, anything else for no.", "No");
+  if (ver === "yes"){
+    localStorage.setItem("slotList", JSON.stringify([]));
+    alert("Success");
+  }
+  else{
+    alert("Aborted");
+  }
+}
+
+function formatCode() {
+  var codeTextArea = document.getElementById('code');
+  var unformattedCode = codeTextArea.value;
+
+  // Split code into lines
+  var lines = unformattedCode.split('\n');
+
+  // Indentation variables
+  var indentation = 0;
+  var indentString = '  '; // Two spaces for each level of indentation
+
+  // Regular expression patterns for detecting opening and closing tags
+  var openTagPattern = /<[^\/>][^>]*>/;
+  var closeTagPattern = /<\/[^>]+>/;
+
+  // Formatted code string
+  var formattedCode = '';
+
+  // Iterate over each line of the code
+  lines.forEach(function(line) {
+    // Trim leading and trailing whitespace
+    line = line.trim();
+
+    // Check if the line contains an opening or closing tag
+    var isOpenTag = openTagPattern.test(line);
+    var isCloseTag = closeTagPattern.test(line);
+
+    // Adjust indentation based on the tag type
+    if (isCloseTag) {
+      indentation--;
+    }
+
+    // Add indentation
+    for (var i = 0; i < indentation; i++) {
+      formattedCode += indentString;
+    }
+
+    // Add the line to the formatted code string
+    formattedCode += line + '\n';
+
+    // Adjust indentation for the next line
+    if (isOpenTag && !isCloseTag) {
+      indentation++;
+    }
+  });
+
+  // Update the content of the textarea with the formatted code
+  codeTextArea.value = formattedCode;
+}
+
+
+function downloadCode() {
+  var code = document.getElementById("code").value;
+  var blob = new Blob([code], { type: "text/html" });
+  var url = URL.createObjectURL(blob);
+  
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = prompt("File Name (without extension)", "code") + ".html";
+  document.body.appendChild(a);
+  a.click();
+  
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function handleTab(event) {
+  if (event.keyCode === 9) { // Tab key
+    event.preventDefault();
+    var textarea = event.target;
+    var start = textarea.selectionStart;
+    var end = textarea.selectionEnd;
+    var tab = "  "; // Two spaces for indentation
+    var content = textarea.value;
+    textarea.value = content.substring(0, start) + tab + content.substring(end);
+    textarea.setSelectionRange(start + tab.length, start + tab.length);
+  }
+}
+
+document.addEventListener("keydown", function(event) {
+  if (event.ctrlKey && event.key === 's') {
+    event.preventDefault(); // Prevent default browser save action
+    saveToLocalStorage(); // Call your save function
+  }
+});
+
+document.addEventListener("keydown", function(event) {
+  if (event.ctrlKey && event.key === 'l') {
+    event.preventDefault(); // Prevent default browser save action
+    loadFromLocalStorage(); // Call your save function
+  }
+});
+
+
+document.addEventListener("keydown", function(event) {
+  if (event.ctrlKey && event.key === 'r') {
+    event.preventDefault(); // Prevent default browser save action
+    encodeToData();
+  }
+});
+
+
+setInterval(function(){updateIframeHeight()}, 10);
+</script>
+</html>
